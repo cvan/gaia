@@ -975,11 +975,39 @@ var GridManager = (function() {
    * points, each one is represented as an icon.)
    */
   function processApp(app, callback, gridPageOffset, gridPosition) {
+    console.log('[processApp] ', app);
     appsByOrigin[app.origin] = app;
 
     var manifest = app.manifest ? app.manifest : app.updateManifest;
     if (!manifest || HIDDEN_ROLES.indexOf(manifest.role) !== -1)
       return;
+
+    // Set wallpaper for wallpapers.
+    console.log('[walle] ' + JSON.stringify(manifest));
+    if (manifest.wallpaper) {
+      console.log('[walle] setting wallpaper');
+
+      var a = document.createElement('a');
+      a.href = manifest.wallpaper;
+
+      // If it's not a data URI, let's convert it to one.
+      if (a.protocol === 'https' || a.protocol == 'https:') {
+        var i = new Image();
+        i.src = a.href;
+        i.onload = function() {
+          var c = document.createElement('canvas');
+          c.width = this.width;
+          c.height = this.height;
+          c.getContext('2d').drawImage(this, 0, 0);
+          manifest.wallpaper = c.toDataURL('image/png');
+        };
+      }
+
+      // TODO: Use CustomEvent.
+      navigator.mozSettings.createLock().set({
+        'wallpaper.image': manifest.wallpaper
+      });
+    }
 
     var entryPoints = manifest.entry_points;
     if (!entryPoints || manifest.type !== 'certified') {
